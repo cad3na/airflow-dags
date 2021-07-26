@@ -2,170 +2,15 @@ from datetime import timedelta
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python_operator import PythonOperator, BranchPythonOperator
+from airflow.operators.dummy import DummyOperator
 from airflow.utils.trigger_rule import TriggerRule
 from airflow.utils.dates import days_ago
 
-def review_csv_files():
-    from datetime import datetime
-    import pathlib as pl
+from mx_covid_data import review_csv_files, csv_to_parquet
+from mx_covid_data import suspect_time_series, confirmed_time_series, negatives_time_series
 
-    data_dir = pl.Path("/home/pi/covid-data/")
-
-    date = datetime.now().strftime("%y%m%d")
-    csvs = list(data_dir.glob(f"{date}COVID19MEXICO.csv"))
-
-    if len(csvs) > 0:
-        return "create_dir"
-    else:
-        return "obtain_data"
-
-def csv_to_parquet():
-    import pandas as pd
-    import pyarrow as pa
-    import pyarrow.parquet as pq
-    import pathlib as pl
-    
-    import os
-    import re
-
-    dtypes = {
-        'ID_REGISTRO':'object',
-        'ORIGEN':int,
-        'SECTOR':int,
-        'ENTIDAD_UM':int,
-        'SEXO':int,
-        'ENTIDAD_NAC':int,
-        'ENTIDAD_RES':int,
-        'MUNICIPIO_RES':int,
-        'TIPO_PACIENTE':int,
-        'INTUBADO':int,
-        'NEUMONIA':int,
-        'EDAD':int,
-        'NACIONALIDAD':int,
-        'EMBARAZO':int,
-        'HABLA_LENGUA_INDIG':int,
-        'INDIGENA':int,
-        'DIABETES':int,
-        'EPOC':int,
-        'ASMA':int,
-        'INMUSUPR':int,
-        'HIPERTENSION':int,
-        'OTRA_COM':int,
-        'CARDIOVASCULAR':int,
-        'OBESIDAD':int,
-        'RENAL_CRONICA':int,
-        'TABAQUISMO':int,
-        'OTRO_CASO':int,
-        'TOMA_MUESTRA_LAB':int,
-        'RESULTADO_LAB':int,
-        'TOMA_MUESTRA_ANTIGENO':int,
-        'RESULTADO_ANTIGENO':int,
-        'CLASIFICACION_FINAL':int,
-        'MIGRANTE':int,
-        'PAIS_NACIONALIDAD':'object',
-        'PAIS_ORIGEN':'object',
-        'UCI':int
-    }
-
-    date_cols = ["FECHA_ACTUALIZACION", "FECHA_INGRESO", "FECHA_SINTOMAS", "FECHA_DEF"]
-
-    data_dir = pl.Path("/home/pi/covid-data/")
-
-    csv_list = list(data_dir.glob("*COVID19MEXICO.csv"))
-    csv_list.sort(key=os.path.getctime, reverse=True)
-
-    csv_file = csv_list[0]
-    csv_date = re.findall("(\d{6})COVID19MEXICO.csv", str(csv_file))[0]
-
-    parquet_dir = data_dir/f"{csv_date}.parquet"
-
-    if not parquet_dir.exists():
-        chunksize = 200000
-
-        csv_stream = pd.read_csv(str(csv_file),
-                                 dtype=dtypes,
-                                 parse_dates=date_cols,
-                                 encoding="latin-1",
-                                 chunksize=chunksize)
-
-        metadata_collector = []
-        for i, chunk in enumerate(csv_stream):
-            print("Chunk", i)
-
-            table = pa.Table.from_pandas(df=chunk)
-            
-            pq.write_to_dataset(table,
-                                root_path=str(parquet_dir),
-                                partition_cols=["ENTIDAD_UM"],
-                                metadata_collector=metadata_collector)
-
-            pq.write_metadata(table.schema, str(parquet_dir/"_common_metadata"))
-
-def suspect_time_series():
-    import pathlib as pl
-    import pyarrow.dataset as ds
-    import os
-    import re
-
-    data_dir = pl.Path("/home/pi/covid-data/")
-
-    parquets = data_dir.glob("*.parquet")
-    parquets.sort(key=os.path.getctime, reverse=True)
-
-    parquet_dir = parquets[0]
-    parquet_date = re.findall("(\d{6}).parquet", str(parquets))[0]
-
-    dataset = ds.dataset(str(parquet_dir), format="parquet", partitioning="hive")
-    cdmx = ds.field('ENTIDAD_UM') == 9
-    sosp = ds.field("CLASIFICACION_FINAL") == 6
-    df_sosp_cdmx = dataset.to_table(filter = cdmx & sosp).to_pandas()
-    ts_sosp_cdmx = df_sosp_cdmx.groupby("FECHA_INGRESO").count()["ORIGEN"]
-
-    ts_sosp_cdmx.to_csv(f"{str(data_dir)}/{parquet_date}/sospechosos_cdmx_{parquet_date}.csv")
-
-def confirmed_time_series():
-    import pathlib as pl
-    import pyarrow.dataset as ds
-    import os
-    import re
-
-    data_dir = pl.Path("/home/pi/covid-data/")
-
-    parquets = data_dir.glob("*.parquet")
-    parquets.sort(key=os.path.getctime, reverse=True)
-
-    parquet_dir = parquets[0]
-    parquet_date = re.findall("(\d{6}).parquet", str(parquets))[0]
-
-    dataset = ds.dataset(str(parquet_dir), format="parquet", partitioning="hive")
-    cdmx = ds.field('ENTIDAD_UM') == 9
-    conf = (ds.field("CLASIFICACION_FINAL") == 1) | (ds.field("CLASIFICACION_FINAL") == 2) | (ds.field("CLASIFICACION_FINAL") == 3)
-    df_conf_cdmx = dataset.to_table(filter = cdmx & conf).to_pandas()
-    ts_conf_cdmx = df_conf_cdmx.groupby("FECHA_INGRESO").count()["ORIGEN"]
-
-    ts_conf_cdmx.to_csv(f"{str(data_dir)}/{parquet_date}/sospechosos_cdmx_{parquet_date}.csv")
-
-def negatives_time_series():
-    import pathlib as pl
-    import pyarrow.dataset as ds
-    import os
-    import re
-
-    data_dir = pl.Path("/home/pi/covid-data/")
-
-    parquets = data_dir.glob("*.parquet")
-    parquets.sort(key=os.path.getctime, reverse=True)
-
-    parquet_dir = parquets[0]
-    parquet_date = re.findall("(\d{6}).parquet", str(parquets))[0]
-
-    dataset = ds.dataset(str(parquet_dir), format="parquet", partitioning="hive")
-    cdmx = ds.field('ENTIDAD_UM') == 9
-    nega = ds.field("CLASIFICACION_FINAL") == 7
-    df_nega_cdmx = dataset.to_table(filter = cdmx & nega).to_pandas()
-    ts_nega_cdmx = df_nega_cdmx.groupby("FECHA_INGRESO").count()["ORIGEN"]
-
-    ts_nega_cdmx.to_csv(f"{str(data_dir)}/{parquet_date}/sospechosos_cdmx_{parquet_date}.csv")
+data_url = "http://datosabiertos.salud.gob.mx/gobmx/salud/datos_abiertos/datos_abiertos_covid19.zip"
+data_dir = "/home/pi/covid-data/"
 
 default_args = {
     'owner': 'roberto',
@@ -185,47 +30,45 @@ dag = DAG(
     schedule_interval = None,
 )
 
-#remove_old_csvs = BashOperator(
-#    task_id = "remove_old_csvs",
-#    bash_command = 'ls /home/pi/covid-data | grep -oP ".*.csv" | xargs rm -rf',
-#    dag = dag,
-#)
-
 remove_old_zips = BashOperator(
     task_id = "remove_old_zips",
-    bash_command = 'ls /home/pi/covid-data | grep -oP ".*.zip" | xargs rm -rf',
+    bash_command = f'ls {data_dir} | grep -oP ".*.zip" | xargs rm -rf',
     dag = dag,
 )
 
 remove_old_dirs = BashOperator(
     task_id = "remove_old_dirs",
-    bash_command = 'ls /home/pi/covid-data | grep -oP "^\d{6}$" | xargs rm -rf',
+    bash_command = f'ls {data_dir} | grep -oP "^\d{6}$" | xargs rm -rf',
     dag = dag,
 )
 
 obtain_data = BashOperator(
     task_id = 'obtain_data',
-    bash_command = 'curl http://datosabiertos.salud.gob.mx/gobmx/salud/datos_abiertos/datos_abiertos_covid19.zip -o /home/pi/covid-data/covid19-data.zip',
+    bash_command = f'curl {data_url} -o {data_dir}covid19-data.zip',
     dag = dag,
 )
 
 unzip_data = BashOperator(
     task_id = 'unzip_data',
-    bash_command = 'unzip /home/pi/covid-data/covid19-data.zip -d /home/pi/covid-data/',
+    bash_command = f'unzip {data_dir}covid19-data.zip -d {data_dir}',
     dag = dag,
 )
 
 create_dir = BashOperator(
     task_id = "create_dir",
-    bash_command = 'ls -t /home/pi/covid-data/*COVID19MEXICO.csv | head -1 | grep -oP "(\d{6})" | mkdir -p "/home/pi/covid-data/$(cat -)"' ,
-    trigger_rule=TriggerRule.ONE_SUCCESS,
+    bash_command = f'ls -t {data_dir}*COVID19MEXICO.csv | head -1 | grep -oP "(\d{6})" | mkdir -p "{data_dir}$(cat -)"',
     dag = dag,
 )
 
 review_csvs = BranchPythonOperator(
     task_id = "review_csvs",
     python_callable = review_csv_files,
-    dag=dag,
+    dag = dag,
+)
+
+join = DummyOperator(
+    task_id = "join",
+    dag = dag
 )
 
 parquet_data = PythonOperator(
@@ -252,13 +95,11 @@ negatives_tables = PythonOperator(
     dag = dag,
 )
 
-remove_old_zips >> review_csvs
+remove_old_zips >> review_csvs >> obtain_data >> unzip_data
 
-review_csvs >> obtain_data >> unzip_data
-
-unzip_data >> create_dir
-review_csvs >> create_dir
+unzip_data >> join
+review_csvs >> join
 
 remove_old_dirs >> parquet_data
 
-create_dir >> parquet_data >> [suspect_tables, confirmed_tables, negatives_tables]
+join >> create_dir >> parquet_data >> [suspect_tables, confirmed_tables, negatives_tables]
