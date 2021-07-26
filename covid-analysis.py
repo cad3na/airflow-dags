@@ -68,7 +68,8 @@ review_csvs = BranchPythonOperator(
 
 join = DummyOperator(
     task_id = "join",
-    dag = dag
+    trigger_rule = "none_failed_or_skipped"
+    dag = dag,
 )
 
 parquet_data = PythonOperator(
