@@ -27,7 +27,7 @@ dag = DAG(
     'covid-analysis',
     default_args = default_args,
     catchup = False,
-    schedule_interval = "5 21 * * *",
+    schedule_interval = "5 2 * * *",
 )
 
 remove_old_zips = BashOperator(
