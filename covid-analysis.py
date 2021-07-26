@@ -15,7 +15,7 @@ def review_csv_files():
     csvs = list(data_dir.glob(f"{date}COVID19MEXICO.csv"))
 
     if len(csvs) > 0:
-        return "no_op"
+        return "create_dir"
     else:
         return "obtain_data"
 
@@ -227,11 +227,6 @@ review_csvs = BranchPythonOperator(
     dag=dag,
 )
 
-no_op = DummyOperator(
-    task_id = "no_op",
-    dag = dag,
-)
-
 parquet_data = PythonOperator(
     task_id = "parquet_data",
     python_callable = csv_to_parquet,
@@ -259,7 +254,7 @@ negatives_tables = PythonOperator(
 remove_old_zips >> review_csvs
 
 review_csvs >> obtain_data >> unzip_data >> create_dir
-review_csvs >> no_op >> create_dir
+review_csvs >> create_dir
 
 remove_old_dirs >> parquet_data
 
