@@ -54,7 +54,7 @@ def review_csv_files():
     csvs = list(data_dir.glob(f"{date}COVID19MEXICO.csv"))
 
     if len(csvs) > 0:
-        return "create_dir"
+        return "join"
     else:
         return "obtain_data"
 
