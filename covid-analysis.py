@@ -60,114 +60,97 @@ def csv_to_parquet():
     csv_list.sort(key=os.path.getctime, reverse=True)
 
     csv_file = csv_list[0]
-    csv_date = re.findall("(\d{6})COVID19MEXICO.csv", csv_file)[0]
+    csv_date = re.findall("(\d{6})COVID19MEXICO.csv", str(csv_file))[0]
 
     parquet_dir = data_dir/f"{csv_date}.parquet"
 
-    chunksize = 100_000
+    if not parquet_dir.exists():
+        chunksize = 100_000
 
-    csv_stream = pd.read_csv(str(csv_file),
-                             dtype=dtypes,
-                             parse_dates=date_cols,
-                             encoding="latin-1",
-                             chunksize=chunksize)
+        csv_stream = pd.read_csv(str(csv_file),
+                                dtype=dtypes,
+                                parse_dates=date_cols,
+                                encoding="latin-1",
+                                chunksize=chunksize)
 
-    metadata_collector = []
-    for i, chunk in enumerate(csv_stream):
-        print("Chunk", i)
+        metadata_collector = []
+        for i, chunk in enumerate(csv_stream):
+            print("Chunk", i)
 
-        table = pa.Table.from_pandas(df=chunk)
-        
-        pq.write_to_dataset(table,
-                            root_path=str(parquet_dir),
-                            partition_cols=["ENTIDAD_UM"],
-                            metadata_collector=metadata_collector)
+            table = pa.Table.from_pandas(df=chunk)
+            
+            pq.write_to_dataset(table,
+                                root_path=str(parquet_dir),
+                                partition_cols=["ENTIDAD_UM"],
+                                metadata_collector=metadata_collector)
 
-    pq.write_metadata(table.schema, str(parquet_dir/"_common_metadata"))
+        pq.write_metadata(table.schema, str(parquet_dir/"_common_metadata"))
 
 def suspect_time_series():
-    from os import listdir
-    from os.path import getctime
-    from re import search, findall
-    from copy import copy
-    from pandas import read_pickle
-    from glob import glob
+    import pathlib as pl
+    import pyarrow.dataset as ds
+    import os
+    import re
 
-    direcs = listdir("/home/pi/covid-data")
-    lista = ["/home/pi/covid-data/" + file for file in direcs if search("^\d{6}$", file)]
-    lista.sort(key=getctime, reverse=True)
-    direc = lista[0]
-    pkl_files = glob(direc + "/*.pkl" )
-    pkl_files.sort(key=lambda x: int(x[-7:-4]))
-    fecha = findall("(\d{6})", direc)[0]
+    data_dir = pl.Path("/home/pi/covid-data/")
 
-    df = read_pickle(pkl_files[0])
-    index = df['CLASIFICACION_FINAL'] == 6
-    sos = df[index].groupby(['ENTIDAD_UM', 'FECHA_INGRESO']).count()['ORIGEN']
-    result = copy(sos)
-    for file in pkl_files[1:]:
-        df = read_pickle(file)
-        index = df['CLASIFICACION_FINAL'] == 6
-        sos = df[index].groupby(['ENTIDAD_UM', 'FECHA_INGRESO']).count()['ORIGEN']
-        result.add(sos, fill_value=0)
+    parquets = data_dir.glob("*.parquet")
+    parquets.sort(key=os.path.getctime, reverse=True)
 
-    result.to_csv(f"{direc}/sospechosos_{fecha}.csv")
+    parquet_dir = parquets[0]
+    parquet_date = re.findall("(\d{6}).parquet", str(parquets))[0]
+
+    dataset = ds.dataset(str(parquet_dir), format="parquet")
+    cdmx = ds.field('ENTIDAD_UM') == 9
+    sosp = ds.field("CLASIFICACION_FINAL") == 6
+    df_sosp_cdmx = dataset.to_table(filter = cdmx & sosp).to_pandas()
+    ts_sosp_cdmx = df_sosp_cdmx.groupby("FECHA_INGRESO").count()["ORIGEN"]
+
+    ts_sosp_cdmx.to_csv(f"{str(data_dir)}/{parquet_date}/sospechosos_cdmx_{parquet_date}.csv")
 
 def confirmed_time_series():
-    from os import listdir
-    from os.path import getctime
-    from re import search, findall
-    from copy import copy
-    from pandas import read_pickle
-    from glob import glob
+    import pathlib as pl
+    import pyarrow.dataset as ds
+    import os
+    import re
 
-    direcs = listdir("/home/pi/covid-data")
-    lista = ["/home/pi/covid-data/" + file for file in direcs if search("^\d{6}$", file)]
-    lista.sort(key=getctime, reverse=True)
-    direc = lista[0]
-    pkl_files = glob(direc + "/*.pkl" )
-    pkl_files.sort(key=lambda x: int(x[-7:-4]))
-    fecha = findall("(\d{6})", direc)[0]
+    data_dir = pl.Path("/home/pi/covid-data/")
 
-    df = read_pickle(pkl_files[0])
-    index = df['CLASIFICACION_FINAL'].isin([1, 2, 3])
-    con = df[index].groupby(['ENTIDAD_UM', 'FECHA_INGRESO']).count()['ORIGEN']
-    result = copy(con)
-    for file in pkl_files[1:]:
-        df = read_pickle(file)
-        index = df['CLASIFICACION_FINAL'].isin([1, 2, 3])
-        con = df[index].groupby(['ENTIDAD_UM', 'FECHA_INGRESO']).count()
-        result.add(con, fill_value=0)
+    parquets = data_dir.glob("*.parquet")
+    parquets.sort(key=os.path.getctime, reverse=True)
 
-    result.to_csv(f"{direc}/confirmados_{fecha}.csv")
+    parquet_dir = parquets[0]
+    parquet_date = re.findall("(\d{6}).parquet", str(parquets))[0]
+
+    dataset = ds.dataset(str(parquet_dir), format="parquet")
+    cdmx = ds.field('ENTIDAD_UM') == 9
+    conf = (ds.field("CLASIFICACION_FINAL") == 1) | (ds.field("CLASIFICACION_FINAL") == 2) | (ds.field("CLASIFICACION_FINAL") == 3)
+    df_conf_cdmx = dataset.to_table(filter = cdmx & conf).to_pandas()
+    ts_conf_cdmx = df_conf_cdmx.groupby("FECHA_INGRESO").count()["ORIGEN"]
+
+    ts_conf_cdmx.to_csv(f"{str(data_dir)}/{parquet_date}/sospechosos_cdmx_{parquet_date}.csv")
 
 def negatives_time_series():
-    from os import listdir
-    from os.path import getctime
-    from re import search, findall
-    from copy import copy
-    from pandas import read_pickle
-    from glob import glob
+    import pathlib as pl
+    import pyarrow.dataset as ds
+    import os
+    import re
 
-    direcs = listdir("/home/pi/covid-data")
-    lista = ["/home/pi/covid-data/" + file for file in direcs if search("^\d{6}$", file)]
-    lista.sort(key=getctime, reverse=True)
-    direc = lista[0]
-    pkl_files = glob(direc + "/*.pkl" )
-    pkl_files.sort(key=lambda x: int(x[-7:-4]))
-    fecha = findall("(\d{6})", direc)[0]
+    data_dir = pl.Path("/home/pi/covid-data/")
 
-    df = read_pickle(pkl_files[0])
-    index = df['CLASIFICACION_FINAL'] == 7
-    neg = df[index].groupby(['ENTIDAD_UM', 'FECHA_INGRESO']).count()['ORIGEN']
-    result = copy(neg)
-    for file in pkl_files[1:]:
-        df = read_pickle(file)
-        index = df['CLASIFICACION_FINAL'] == 7
-        neg = df[index].groupby(['ENTIDAD_UM', 'FECHA_INGRESO']).count()['ORIGEN']
-        result.add(neg, fill_value=0)
+    parquets = data_dir.glob("*.parquet")
+    parquets.sort(key=os.path.getctime, reverse=True)
 
-    result.to_csv(f"{direc}/negativos_{fecha}.csv")
+    parquet_dir = parquets[0]
+    parquet_date = re.findall("(\d{6}).parquet", str(parquets))[0]
+
+    dataset = ds.dataset(str(parquet_dir), format="parquet")
+    cdmx = ds.field('ENTIDAD_UM') == 9
+    nega = ds.field("CLASIFICACION_FINAL") == 7
+    df_nega_cdmx = dataset.to_table(filter = cdmx & nega).to_pandas()
+    ts_nega_cdmx = df_nega_cdmx.groupby("FECHA_INGRESO").count()["ORIGEN"]
+
+    ts_nega_cdmx.to_csv(f"{str(data_dir)}/{parquet_date}/sospechosos_cdmx_{parquet_date}.csv")
 
 default_args = {
     'owner': 'roberto',
@@ -247,10 +230,8 @@ negatives_tables = PythonOperator(
     dag = dag,
 )
 
-#remove_old_csvs >> unzip_data
 remove_old_zips >> obtain_data
-remove_old_dirs >> create_dir
+remove_old_dirs >> parquet_data
 
-obtain_data >> unzip_data >> create_dir  >> parquet_data
-
-parquet_data >> suspect_tables >> confirmed_tables >> negatives_tables
+obtain_data >> unzip_data >> create_dir >> parquet_data
+parquet_data >> [suspect_tables, confirmed_tables, negatives_tables]
