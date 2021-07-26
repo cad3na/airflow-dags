@@ -1,8 +1,23 @@
 from datetime import timedelta
 from airflow import DAG
+from airflow.operators.dummy import DummyOperator
 from airflow.operators.bash_operator import BashOperator
-from airflow.operators.python_operator import PythonOperator
+from airflow.operators.python_operator import PythonOperator, BranchPythonOperator
 from airflow.utils.dates import days_ago
+
+def review_csv_files():
+    from datetime import datetime
+    import pathlib as pl
+
+    data_dir = pl.Path("/home/pi/covid-data/")
+
+    date = datetime.now().strftime("%y%m%d")
+    csvs = list(data_dir.glob(f"{date}COVID19MEXICO.csv"))
+
+    if len(csvs) > 0:
+        return "no_op"
+    else:
+        return "obtain_data"
 
 def csv_to_parquet():
     import pandas as pd
@@ -206,6 +221,17 @@ create_dir = BashOperator(
     dag = dag,
 )
 
+review_csvs = BranchPythonOperator(
+    task_id = "review_csvs",
+    python_callable = review_csv_files,
+    dag=dag,
+)
+
+no_op = DummyOperator(
+    task_id = "no_op",
+    dag = dag,
+)
+
 parquet_data = PythonOperator(
     task_id = "parquet_data",
     python_callable = csv_to_parquet,
@@ -230,8 +256,11 @@ negatives_tables = PythonOperator(
     dag = dag,
 )
 
-remove_old_zips >> obtain_data
+remove_old_zips >> review_csvs
+
+review_csvs >> obtain_data >> unzip_data >> create_dir
+review_csvs >> no_op >> create_dir
+
 remove_old_dirs >> parquet_data
 
-obtain_data >> unzip_data >> create_dir >> parquet_data
-parquet_data >> [suspect_tables, confirmed_tables, negatives_tables]
+create_dir >> parquet_data >> [suspect_tables, confirmed_tables, negatives_tables]
