@@ -80,13 +80,13 @@ def csv_to_parquet():
     parquet_dir = data_dir/f"{csv_date}.parquet"
 
     if not parquet_dir.exists():
-        chunksize = 50_000
+        chunksize = 20000
 
         csv_stream = pd.read_csv(str(csv_file),
-                                dtype=dtypes,
-                                parse_dates=date_cols,
-                                encoding="latin-1",
-                                chunksize=chunksize)
+                                 dtype=dtypes,
+                                 parse_dates=date_cols,
+                                 encoding="latin-1",
+                                 chunksize=chunksize)
 
         metadata_collector = []
         for i, chunk in enumerate(csv_stream):
@@ -99,7 +99,7 @@ def csv_to_parquet():
                                 partition_cols=["ENTIDAD_UM"],
                                 metadata_collector=metadata_collector)
 
-        pq.write_metadata(table.schema, str(parquet_dir/"_common_metadata"))
+            pq.write_metadata(table.schema, str(parquet_dir/"_common_metadata"))
 
 def suspect_time_series():
     import pathlib as pl
@@ -115,7 +115,7 @@ def suspect_time_series():
     parquet_dir = parquets[0]
     parquet_date = re.findall("(\d{6}).parquet", str(parquets))[0]
 
-    dataset = ds.dataset(str(parquet_dir), format="parquet")
+    dataset = ds.dataset(str(parquet_dir), format="parquet", partitioning="hive")
     cdmx = ds.field('ENTIDAD_UM') == 9
     sosp = ds.field("CLASIFICACION_FINAL") == 6
     df_sosp_cdmx = dataset.to_table(filter = cdmx & sosp).to_pandas()
@@ -137,7 +137,7 @@ def confirmed_time_series():
     parquet_dir = parquets[0]
     parquet_date = re.findall("(\d{6}).parquet", str(parquets))[0]
 
-    dataset = ds.dataset(str(parquet_dir), format="parquet")
+    dataset = ds.dataset(str(parquet_dir), format="parquet", partitioning="hive")
     cdmx = ds.field('ENTIDAD_UM') == 9
     conf = (ds.field("CLASIFICACION_FINAL") == 1) | (ds.field("CLASIFICACION_FINAL") == 2) | (ds.field("CLASIFICACION_FINAL") == 3)
     df_conf_cdmx = dataset.to_table(filter = cdmx & conf).to_pandas()
@@ -159,7 +159,7 @@ def negatives_time_series():
     parquet_dir = parquets[0]
     parquet_date = re.findall("(\d{6}).parquet", str(parquets))[0]
 
-    dataset = ds.dataset(str(parquet_dir), format="parquet")
+    dataset = ds.dataset(str(parquet_dir), format="parquet", partitioning="hive")
     cdmx = ds.field('ENTIDAD_UM') == 9
     nega = ds.field("CLASIFICACION_FINAL") == 7
     df_nega_cdmx = dataset.to_table(filter = cdmx & nega).to_pandas()
