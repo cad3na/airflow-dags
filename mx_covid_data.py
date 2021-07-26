@@ -41,12 +41,16 @@ dtypes = {
 date_cols = ["FECHA_ACTUALIZACION", "FECHA_INGRESO", "FECHA_SINTOMAS", "FECHA_DEF"]
 
 def review_csv_files():
-    from datetime import datetime
+    from datetime import datetime, timedelta
     import pathlib as pl
 
     data_dir = pl.Path("/home/pi/covid-data/")
 
-    date = datetime.now().strftime("%y%m%d")
+    date = datetime.now()
+    if date.hour < 21:
+        date = date - timedelta(days=1)
+    
+    date = date.strftime("%y%m%d")
     csvs = list(data_dir.glob(f"{date}COVID19MEXICO.csv"))
 
     if len(csvs) > 0:
