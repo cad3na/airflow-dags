@@ -1,8 +1,8 @@
 from datetime import timedelta
 from airflow import DAG
-from airflow.operators.dummy import DummyOperator
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python_operator import PythonOperator, BranchPythonOperator
+from airflow.utils.trigger_rule import TriggerRule
 from airflow.utils.dates import days_ago
 
 def review_csv_files():
@@ -218,6 +218,7 @@ unzip_data = BashOperator(
 create_dir = BashOperator(
     task_id = "create_dir",
     bash_command = 'ls -t /home/pi/covid-data/*COVID19MEXICO.csv | head -1 | grep -oP "(\d{6})" | mkdir -p "/home/pi/covid-data/$(cat -)"' ,
+    trigger_rule=TriggerRule.ONE_SUCCESS,
     dag = dag,
 )
 
@@ -253,7 +254,9 @@ negatives_tables = PythonOperator(
 
 remove_old_zips >> review_csvs
 
-review_csvs >> obtain_data >> unzip_data >> create_dir
+review_csvs >> obtain_data >> unzip_data
+
+unzip_data >> create_dir
 review_csvs >> create_dir
 
 remove_old_dirs >> parquet_data
