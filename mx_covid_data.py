@@ -107,7 +107,7 @@ def suspect_time_series():
 
     data_dir = pl.Path("/home/pi/covid-data/")
 
-    parquets = data_dir.glob("*.parquet")
+    parquets = list(data_dir.glob("*.parquet"))
     parquets.sort(key=os.path.getctime, reverse=True)
 
     parquet_dir = parquets[0]
@@ -129,7 +129,7 @@ def confirmed_time_series():
 
     data_dir = pl.Path("/home/pi/covid-data/")
 
-    parquets = data_dir.glob("*.parquet")
+    parquets = list(data_dir.glob("*.parquet"))
     parquets.sort(key=os.path.getctime, reverse=True)
 
     parquet_dir = parquets[0]
@@ -151,7 +151,7 @@ def negatives_time_series():
 
     data_dir = pl.Path("/home/pi/covid-data/")
 
-    parquets = data_dir.glob("*.parquet")
+    parquets = list(data_dir.glob("*.parquet"))
     parquets.sort(key=os.path.getctime, reverse=True)
 
     parquet_dir = parquets[0]
