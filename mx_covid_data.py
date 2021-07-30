@@ -78,7 +78,7 @@ def csv_to_parquet():
     parquet_dir = data_dir/f"{csv_date}.parquet"
 
     if not parquet_dir.exists():
-        chunksize = 100000
+        chunksize = 50000
 
         csv_stream = pd.read_csv(str(csv_file),
                                  dtype=dtypes,
