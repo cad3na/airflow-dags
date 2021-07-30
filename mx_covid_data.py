@@ -86,10 +86,10 @@ def csv_to_parquet():
                                  encoding="latin-1",
                                  chunksize=chunksize)
 
-        metadata_collector = []
+        
         for i, chunk in enumerate(csv_stream):
             print("Chunk", i)
-
+            metadata_collector = []
             table = pa.Table.from_pandas(df=chunk)
             
             pq.write_to_dataset(table,
