@@ -239,3 +239,62 @@ def negatives_time_series_graph():
     ax.plot(df.rolling(7).mean())
 
     fig.savefig(str(data_dir/csvs_date/f"negativos_cdmx_{csvs_date}.pdf"))
+
+def email_data_results():
+    import pathlib as pl
+
+    import smtplib
+    import ssl
+    import os
+    import re
+
+    from email import encoders
+    from email.mime.base import MIMEBase
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+
+    user_mail = os.environ["AIRFLOW_EMAIL"]
+    admin_mail = "roberto@cad3na.com"
+    password = os.environ["AIRFLOW_PASS"]
+
+    port = 465
+    smtp_server = "smtp.dreamhost.com"
+
+    subject = "Airflow's covid-analysis DAG execution is done!"
+    body = subject + " Here's your stuff!"
+
+    message = MIMEMultipart()
+    message["From"] = user_mail
+    message["To"] = admin_mail
+    message["Subject"] = subject
+
+    message.attach(MIMEText(body, "plain"))
+
+    data_dir = pl.Path("/home/pi/covid-data/")
+
+    csv_dirs = list(data_dir.glob("??????"))
+    csv_dirs.sort(key=os.path.getctime, reverse=True)
+
+    csvs_dir = csv_dirs[0]
+
+    filenames = csvs_dir.glob("*")
+
+    for filename in filenames:
+        with open(filename, "rb") as attachment:
+            part = MIMEBase("application", "octet-stream")
+            part.set_payload(attachment.read())
+
+        encoders.encode_base64(part)
+
+        part.add_header("Content-Disposition", f"attachment; filename= {filename}")
+
+        message.attach(part)
+    
+    text = message.as_string()
+
+    context = ssl.create_default_context()
+
+    with smtplib.SMTP_SSL("smtp.gmail.com", port, context=context) as server:
+        server.login("my@gmail.com", password)
+        
+        server.sendmail(user_mail, admin_mail, text)

@@ -6,7 +6,7 @@ from airflow.operators.dummy import DummyOperator
 from airflow.utils.trigger_rule import TriggerRule
 from airflow.utils.dates import days_ago
 
-from mx_covid_data import review_csv_files, csv_to_parquet
+from mx_covid_data import email_data_results, review_csv_files, csv_to_parquet
 from mx_covid_data import suspect_time_series, confirmed_time_series, negatives_time_series
 from mx_covid_data import suspect_time_series_graph, confirmed_time_series_graph, negatives_time_series_graph
 
@@ -115,6 +115,12 @@ negatives_graphs = PythonOperator(
     dag = dag,
 )
 
+mail_results = PythonOperator(
+    task_id = "mail_results",
+    python_callable = email_data_results,
+    dag = dag,
+)
+
 remove_old_zips >> review_csvs >> obtain_data >> unzip_data
 
 unzip_data >> join
@@ -127,3 +133,5 @@ join >> create_dir >> parquet_data >> [suspect_tables, confirmed_tables, negativ
 suspect_tables >> suspect_graphs
 confirmed_tables >> confirmed_graphs
 negatives_tables >> negatives_graphs
+
+[suspect_graphs, confirmed_graphs, negatives_graphs] >> mail_results
