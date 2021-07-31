@@ -180,7 +180,7 @@ def suspect_time_series_graph():
     csvs_dir = csv_dirs[0]
     csvs_date = re.findall("(\d{6})", str(csvs_dir))[0]
 
-    df = pd.read_csv(str(data_dir/csvs_date/f"sospechosos_cdmx_{csvs_date}.csv", parse_dates=["FECHA_INGRESO"]))
+    df = pd.read_csv(str(data_dir/csvs_date/f"sospechosos_cdmx_{csvs_date}.csv"), parse_dates=["FECHA_INGRESO"])
     df = df.set_index("FECHA_INGRESO")
 
     fig = pt.figure(figsize=(10,5))
@@ -205,7 +205,7 @@ def confirmed_time_series_graph():
     csvs_dir = csv_dirs[0]
     csvs_date = re.findall("(\d{6})", str(csvs_dir))[0]
 
-    df = pd.read_csv(str(data_dir/csvs_date/f"confirmados_cdmx_{csvs_date}.csv", parse_dates=["FECHA_INGRESO"]))
+    df = pd.read_csv(str(data_dir/csvs_date/f"confirmados_cdmx_{csvs_date}.csv"), parse_dates=["FECHA_INGRESO"])
     df = df.set_index("FECHA_INGRESO")
 
     fig = pt.figure(figsize=(10,5))
@@ -230,7 +230,7 @@ def negatives_time_series_graph():
     csvs_dir = csv_dirs[0]
     csvs_date = re.findall("(\d{6})", str(csvs_dir))[0]
 
-    df = pd.read_csv(str(data_dir/csvs_date/f"negativos_cdmx_{csvs_date}.csv", parse_dates=["FECHA_INGRESO"]))
+    df = pd.read_csv(str(data_dir/csvs_date/f"negativos_cdmx_{csvs_date}.csv"), parse_dates=["FECHA_INGRESO"])
     df = df.set_index("FECHA_INGRESO")
 
     fig = pt.figure(figsize=(10,5))
