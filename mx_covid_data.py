@@ -164,3 +164,78 @@ def negatives_time_series():
     ts_nega_cdmx = df_nega_cdmx.groupby("FECHA_INGRESO").count()["ORIGEN"]
 
     ts_nega_cdmx.to_csv(f"{str(data_dir)}/{parquet_date}/negativos_cdmx_{parquet_date}.csv")
+
+def suspect_time_series_graph():
+    import pathlib as pl
+    import matplotlib.pyplot as pt
+    import pandas as pd
+    import os
+    import re
+
+    data_dir = pl.Path("/home/pi/covid-data/")
+
+    csv_dirs = list(data_dir.glob("??????"))
+    csv_dirs.sort(key=os.path.getctime, reverse=True)
+
+    csvs_dir = csv_dirs[0]
+    csvs_date = re.findall("(\d{6})", str(csvs_dir))[0]
+
+    df = pd.read_csv(str(data_dir/csvs_date/f"sospechosos_cdmx_{csvs_date}.csv", parse_dates=["FECHA_INGRESO"]))
+    df = df.set_index("FECHA_INGRESO")
+
+    fig = pt.figure(figsize=(10,5))
+    ax = fig.gca()
+    ax.plot(df)
+    ax.plot(df.rolling(7).mean())
+
+    fig.savefig(str(data_dir/csvs_date/f"sospechosos_cdmx_{csvs_date}.pdf"))
+
+def confirmed_time_series_graph():
+    import pathlib as pl
+    import matplotlib.pyplot as pt
+    import pandas as pd
+    import os
+    import re
+
+    data_dir = pl.Path("/home/pi/covid-data/")
+
+    csv_dirs = list(data_dir.glob("??????"))
+    csv_dirs.sort(key=os.path.getctime, reverse=True)
+
+    csvs_dir = csv_dirs[0]
+    csvs_date = re.findall("(\d{6})", str(csvs_dir))[0]
+
+    df = pd.read_csv(str(data_dir/csvs_date/f"confirmados_cdmx_{csvs_date}.csv", parse_dates=["FECHA_INGRESO"]))
+    df = df.set_index("FECHA_INGRESO")
+
+    fig = pt.figure(figsize=(10,5))
+    ax = fig.gca()
+    ax.plot(df)
+    ax.plot(df.rolling(7).mean())
+
+    fig.savefig(str(data_dir/csvs_date/f"confirmados_cdmx_{csvs_date}.pdf"))
+
+def negatives_time_series_graph():
+    import pathlib as pl
+    import matplotlib.pyplot as pt
+    import pandas as pd
+    import os
+    import re
+
+    data_dir = pl.Path("/home/pi/covid-data/")
+
+    csv_dirs = list(data_dir.glob("??????"))
+    csv_dirs.sort(key=os.path.getctime, reverse=True)
+
+    csvs_dir = csv_dirs[0]
+    csvs_date = re.findall("(\d{6})", str(csvs_dir))[0]
+
+    df = pd.read_csv(str(data_dir/csvs_date/f"negativos_cdmx_{csvs_date}.csv", parse_dates=["FECHA_INGRESO"]))
+    df = df.set_index("FECHA_INGRESO")
+
+    fig = pt.figure(figsize=(10,5))
+    ax = fig.gca()
+    ax.plot(df)
+    ax.plot(df.rolling(7).mean())
+
+    fig.savefig(str(data_dir/csvs_date/f"negativos_cdmx_{csvs_date}.pdf"))

@@ -8,6 +8,7 @@ from airflow.utils.dates import days_ago
 
 from mx_covid_data import review_csv_files, csv_to_parquet
 from mx_covid_data import suspect_time_series, confirmed_time_series, negatives_time_series
+from mx_covid_data import suspect_time_series_graph, confirmed_time_series_graph, negatives_time_series_graph
 
 data_url = "http://datosabiertos.salud.gob.mx/gobmx/salud/datos_abiertos/datos_abiertos_covid19.zip"
 data_dir = "/home/pi/covid-data/"
@@ -96,6 +97,24 @@ negatives_tables = PythonOperator(
     dag = dag,
 )
 
+suspect_graphs = PythonOperator(
+    task_id = "suspect_graphs",
+    python_callable = suspect_time_series_graph,
+    dag = dag,
+)
+
+confirmed_graphs = PythonOperator(
+    task_id = "confirmed_graphs",
+    python_callable = confirmed_time_series_graph,
+    dag = dag,
+)
+
+negatives_graphs = PythonOperator(
+    task_id = "negatives_graphs",
+    python_callable = negatives_time_series_graph,
+    dag = dag,
+)
+
 remove_old_zips >> review_csvs >> obtain_data >> unzip_data
 
 unzip_data >> join
@@ -104,3 +123,7 @@ review_csvs >> join
 remove_old_dirs >> parquet_data
 
 join >> create_dir >> parquet_data >> [suspect_tables, confirmed_tables, negatives_tables]
+
+suspect_tables >> suspect_graphs
+confirmed_tables >> confirmed_graphs
+negatives_tables >> negatives_graphs
