@@ -294,7 +294,7 @@ def email_data_results():
 
     context = ssl.create_default_context()
 
-    with smtplib.SMTP_SSL("smtp.gmail.com", port, context=context) as server:
-        server.login("my@gmail.com", password)
+    with smtplib.SMTP_SSL(smtp_server, port, context=context) as server:
+        server.login(user_mail, password)
         
         server.sendmail(user_mail, admin_mail, text)
