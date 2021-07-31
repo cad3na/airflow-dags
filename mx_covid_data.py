@@ -116,7 +116,7 @@ def suspect_time_series():
     dataset = ds.dataset(str(parquet_dir), format="parquet", partitioning="hive")
     cdmx = ds.field('ENTIDAD_UM') == 9
     sosp = ds.field("CLASIFICACION_FINAL") == 6
-    df_sosp_cdmx = dataset.to_table(filter = cdmx & sosp).to_pandas()
+    df_sosp_cdmx = dataset.to_table(filter = cdmx & sosp, columns=["FECHA_INGRESO", "ORIGEN"]).to_pandas()
     ts_sosp_cdmx = df_sosp_cdmx.groupby("FECHA_INGRESO").count()["ORIGEN"]
 
     ts_sosp_cdmx.to_csv(f"{str(data_dir)}/{parquet_date}/sospechosos_cdmx_{parquet_date}.csv")
@@ -138,7 +138,7 @@ def confirmed_time_series():
     dataset = ds.dataset(str(parquet_dir), format="parquet", partitioning="hive")
     cdmx = ds.field('ENTIDAD_UM') == 9
     conf = (ds.field("CLASIFICACION_FINAL") == 1) | (ds.field("CLASIFICACION_FINAL") == 2) | (ds.field("CLASIFICACION_FINAL") == 3)
-    df_conf_cdmx = dataset.to_table(filter = cdmx & conf).to_pandas()
+    df_conf_cdmx = dataset.to_table(filter = cdmx & conf, columns=["FECHA_INGRESO", "ORIGEN"]).to_pandas()
     ts_conf_cdmx = df_conf_cdmx.groupby("FECHA_INGRESO").count()["ORIGEN"]
 
     ts_conf_cdmx.to_csv(f"{str(data_dir)}/{parquet_date}/confirmados_cdmx_{parquet_date}.csv")
@@ -160,7 +160,7 @@ def negatives_time_series():
     dataset = ds.dataset(str(parquet_dir), format="parquet", partitioning="hive")
     cdmx = ds.field('ENTIDAD_UM') == 9
     nega = ds.field("CLASIFICACION_FINAL") == 7
-    df_nega_cdmx = dataset.to_table(filter = cdmx & nega).to_pandas()
+    df_nega_cdmx = dataset.to_table(filter = cdmx & nega, columns=["FECHA_INGRESO", "ORIGEN"]).to_pandas()
     ts_nega_cdmx = df_nega_cdmx.groupby("FECHA_INGRESO").count()["ORIGEN"]
 
     ts_nega_cdmx.to_csv(f"{str(data_dir)}/{parquet_date}/negativos_cdmx_{parquet_date}.csv")
