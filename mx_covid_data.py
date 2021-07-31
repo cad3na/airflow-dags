@@ -261,7 +261,7 @@ def email_data_results():
     smtp_server = "smtp.dreamhost.com"
 
     subject = "Airflow's covid-analysis DAG execution is done!"
-    body = subject + " Here's your stuff!"
+    body = subject + " Here's your stuff!\n"
 
     message = MIMEMultipart()
     message["From"] = user_mail
@@ -286,7 +286,7 @@ def email_data_results():
 
         encoders.encode_base64(part)
 
-        part.add_header("Content-Disposition", f"attachment; filename= {filename}")
+        part.add_header("Content-Disposition", f"attachment; filename={filename}")
 
         message.attach(part)
     
