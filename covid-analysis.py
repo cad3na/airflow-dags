@@ -56,7 +56,7 @@ unzip_data = BashOperator(
 
 create_dir = BashOperator(
     task_id = "create_dir",
-    bash_command = f'ls -t {data_dir}*COVID19MEXICO.csv | head -1 | grep -oP "(\d{6})" | mkdir -p "{data_dir}$(cat -)"',
+    bash_command = f'ls -t {data_dir}*COVID19MEXICO.csv ' + '| head -1 |' + 'grep -oP "(\d{6})" ' + f'| mkdir -p "{data_dir}$(cat -)"',
     dag = dag,
 )
 
