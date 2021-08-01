@@ -285,9 +285,7 @@ def email_data_results():
             part.set_payload(attachment.read())
 
         encoders.encode_base64(part)
-
-        part.add_header("Content-Disposition", f"attachment; filename={filename}")
-
+        part.add_header('Content-Disposition', 'attachment', filename=filename)
         message.attach(part)
     
     text = message.as_string()
