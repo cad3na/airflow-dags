@@ -189,6 +189,7 @@ def suspect_time_series_graph():
     ax.plot(df.rolling(7).mean(), label="7 day rolling avg.")
 
     ax.set_title("Sospechosos " + csvs_date)
+    ax.legend()
     ax.grid(True)
 
     fig.savefig(str(data_dir/csvs_date/f"sospechosos_cdmx_{csvs_date}.pdf"))
@@ -217,6 +218,7 @@ def confirmed_time_series_graph():
     ax.plot(df.rolling(7).mean(), label="7 day rolling avg.")
 
     ax.set_title("Confirmados " + csvs_date)
+    ax.legend()
     ax.grid(True)
 
     fig.savefig(str(data_dir/csvs_date/f"confirmados_cdmx_{csvs_date}.pdf"))
@@ -245,6 +247,7 @@ def negatives_time_series_graph():
     ax.plot(df.rolling(7).mean(), label="7 day rolling avg.")
 
     ax.set_title("Negativos " + csvs_date)
+    ax.legend()
     ax.grid(True)
 
     fig.savefig(str(data_dir/csvs_date/f"negativos_cdmx_{csvs_date}.pdf"))
