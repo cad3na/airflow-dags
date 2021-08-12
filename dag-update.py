@@ -18,7 +18,7 @@ dag = DAG(
     'dag-update',
     default_args = default_args,
     catchup = False,
-    schedule_interval = "* */15 * * *",
+    schedule_interval = "*/15 * * * *",
 )
 
 git_pull = BashOperator(
