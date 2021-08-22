@@ -23,6 +23,6 @@ dag = DAG(
 
 git_pull = BashOperator(
     task_id = "update_dags",
-    bash_command = f'cd /home/pi/airflow/dags && git pull',
+    bash_command = f'cd /home/pi/airflow-dags && git pull',
     dag = dag,
 )
