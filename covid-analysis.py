@@ -31,6 +31,12 @@ dag = DAG(
     schedule_interval = "5 2 * * *",
 )
 
+setup_data_dir = BashOperator(
+    task_id "setup_data_dir",
+    bash_command = f"mkdir -p {data_dir}",
+    dag = dag,
+)
+
 remove_old_zips = BashOperator(
     task_id = "remove_old_zips",
     bash_command = f'ls {data_dir} | grep -oP ".*.zip" | xargs rm -rf',
@@ -121,7 +127,7 @@ mail_results = PythonOperator(
     dag = dag,
 )
 
-remove_old_zips >> review_csvs >> obtain_data >> unzip_data
+setup_data_dir >> remove_old_zips >> review_csvs >> obtain_data >> unzip_data
 
 unzip_data >> join
 review_csvs >> join
