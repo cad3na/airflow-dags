@@ -32,7 +32,7 @@ dag = DAG(
 )
 
 setup_data_dir = BashOperator(
-    task_id "setup_data_dir",
+    task_id = "setup_data_dir",
     bash_command = f"mkdir -p {data_dir}",
     dag = dag,
 )
